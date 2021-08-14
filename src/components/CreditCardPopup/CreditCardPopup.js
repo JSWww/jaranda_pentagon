@@ -15,11 +15,7 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
     cvc: '',
   });
 
-  const [cautions, setCautions] = useState({
-    0: '',
-    1: '',
-    2: '',
-  });
+  const [caution, setCaution] = useState('');
 
   const cardNumberRefs = useRef([]);
 
@@ -41,33 +37,9 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
     });
   };
 
-  const cardNumberValidation = () => {
-    if (cardNumberRefs.current.findIndex(({ value }) => value.length !== 4) !== -1) {
-      setCautions((prev) => {
-        return { ...prev, 0: '카드번호를 확인하세요' };
-      });
-      return false;
-    }
-
-    setCautions((prev) => {
-      return { ...prev, 0: '' };
-    });
-
-    return true;
-  };
-
   const effectiveDateValidation = () => {
-    if (month.length === 0 || year.length === 0) {
-      setCautions((prev) => {
-        return { ...prev, 1: '유효기간을 확인하세요' };
-      });
-      return false;
-    }
-
     if (month <= 0 || month > 12) {
-      setCautions((prev) => {
-        return { ...prev, 1: '월은 1 ~ 12 사이의 값만 가능합니다' };
-      });
+      setCaution('월은 1 ~ 12 사이의 값만 가능합니다');
       return false;
     }
 
@@ -76,42 +48,20 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
     const currentMonth = date.getMonth() + 1;
 
     if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      setCautions((prev) => {
-        return { ...prev, 1: '유효기간이 만료된 카드입니다' };
-      });
+      setCaution('유효기간이 만료된 카드입니다');
       return false;
     }
 
-    setCautions((prev) => {
-      return { ...prev, 1: '' };
-    });
-
-    return true;
-  };
-
-  const CVCValidation = () => {
-    if (cvc.length !== 3) {
-      setCautions((prev) => {
-        return { ...prev, 2: 'CVC번호를 확인하세요' };
-      });
-      return false;
-    }
-
-    setCautions((prev) => {
-      return { ...prev, 2: '' };
-    });
-
+    setCaution('');
     return true;
   };
 
   const format = (n) => (n.length === 1 ? `0${n}` : n);
 
-  const onConfirmClick = () => {
-    let result = cardNumberValidation();
-    result &= effectiveDateValidation();
-    result &= CVCValidation();
+  const onConfirmClick = (e) => {
+    e.preventDefault();
 
-    if (result) {
+    if (effectiveDateValidation()) {
       saveCardInfo((prev) => ({
         ...prev,
         ['cardNumber']: `${card1} - ${card2} - ${card3} - ${card4}`,
@@ -125,7 +75,7 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
 
   return (
     <Container onClick={({ target }) => !target.closest('table') && onClose()}>
-      <Wrapper>
+      <Form onSubmit={onConfirmClick}>
         <Table>
           <thead>
             <tr>
@@ -134,10 +84,7 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
           </thead>
           <tbody>
             <tr>
-              <td>
-                카드번호
-                {cautions[0] && <Caution>{cautions[0]}</Caution>}
-              </td>
+              <td>카드번호</td>
             </tr>
             <tr>
               <td>
@@ -148,7 +95,11 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
                       type='text'
                       name={`card${i + 1}`}
                       value={inputs[`card${i + 1}`]}
+                      minLength='4'
                       maxLength='4'
+                      required
+                      autoComplete='off'
+                      autoFocus={i === 0}
                       onChange={onChange}
                     />
                     {i !== 3 && <span>-</span>}
@@ -159,37 +110,36 @@ const CreditCardPopup = ({ onClose, saveCardInfo }) => {
             <tr>
               <td>
                 유효기간
-                {cautions[1] && <Caution>{cautions[1]}</Caution>}
+                {caution && <Caution>{caution}</Caution>}
               </td>
             </tr>
             <tr>
               <td>
-                <StyledInput type='text' name='month' value={month} placeholder='월' maxLength='2' onChange={onChange} />
+                <StyledInput type='text' name='month' value={month} placeholder='월' maxLength='2' required autoComplete='off' onChange={onChange} />
                 <span>/</span>
-                <StyledInput type='text' name='year' value={year} placeholder='년' maxLength='2' onChange={onChange} />
+                <StyledInput type='text' name='year' value={year} placeholder='년' maxLength='2' required autoComplete='off' onChange={onChange} />
               </td>
             </tr>
             <tr>
-              <td>
-                CVC번호
-                {cautions[2] && <Caution>{cautions[2]}</Caution>}
-              </td>
+              <td>CVC번호</td>
             </tr>
             <tr>
               <td>
-                <StyledInput type='text' name='cvc' value={cvc} maxLength='3' onChange={onChange} />
+                <StyledInput type='text' name='cvc' value={cvc} minLength='3' maxLength='3' required autoComplete='off' onChange={onChange} />
                 <Hint>카드 뒷면 마지막 3자리 숫자</Hint>
               </td>
             </tr>
             <tr>
               <td>
-                <StyledButton onClick={onConfirmClick}>확인</StyledButton>
-                <StyledButton onClick={onClose}>취소</StyledButton>
+                <StyledButton type='submit'>확인</StyledButton>
+                <StyledButton type='reset' onClick={onClose}>
+                  취소
+                </StyledButton>
               </td>
             </tr>
           </tbody>
         </Table>
-      </Wrapper>
+      </Form>
     </Container>
   );
 };
@@ -203,7 +153,7 @@ const Container = styled.div`
   background-color: rgba(80, 80, 80, 0.5);
 `;
 
-const Wrapper = styled.div`
+const Form = styled.form`
   display: flex;
   justify-content: center;
   align-items: center;
